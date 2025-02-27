@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frontend Search</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            text-align: left;
+            padding: 20px;
+        }
+        .search-container {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        #searchInput {
+            padding: 10px;
+            width: 400px;
+            font-size: 16px;
+        }
+        #searchButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        .results-container {
+            display: flex;
+            gap: 20px;
+        }
+        .text-results {
+            flex: 2;
+        }
+        .image-results {
+            flex: 1;
+        }
+        .summary-box {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+            color: #e0e0e0;
+            flex: 1;
+            height: 100%;
+            max-width: 300px;
+            overflow-y: auto;
+        }
+        .result-item {
+            background-color: #2a2a2a;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        .result-item a {
+            color: #56b6c2;
+            text-decoration: none;
+        }
+        .result-item a:hover {
+            text-decoration: underline;
+        }
+        .image-results img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+        }
+        .log {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #ff5555;
+        }
+        .loading {
+            font-size: 18px;
+            text-align: center;
+            margin-top: 20px;
+            color: #ffa500;
+        }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Enter your search term...">
+        <button id="searchButton">Search</button>
+    </div>
+    <div class="results-container">
+        <div id="textResults" class="text-results"></div>
+        <div id="imageResults" class="image-results"></div>
+        <div id="summaryBox" class="summary-box"></div>
+    </div>
+    <div id="log" class="log"></div>
+    <div id="loading" class="loading" style="display: none;">Loading...</div>
+
+    <script>
+        document.getElementById('searchButton').addEventListener('click', performSearch);
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        async function performSearch() {
+            const searchTerm = document.getElementById('searchInput').value;
+            document.getElementById('textResults').innerHTML = '';
+            document.getElementById('imageResults').innerHTML = '';
+            document.getElementById('log').innerHTML = '';
+            document.getElementById('summaryBox').innerHTML = '';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/search?q=${encodeURIComponent(searchTerm)}`);
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                document.getElementById('textResults').innerHTML = 'An error occurred while searching. Please try again.';
+                logError(error);
+            }
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function displayResults(data) {
+            const textResultsDiv = document.getElementById('textResults');
+            textResultsDiv.innerHTML = '';
+            const summaryBox = document.getElementById('summaryBox');
+
+            if (data.results.length > 0) {
+                data.results.forEach(item => {
+                    const resultItem = document.createElement('div');
+                    resultItem.className = 'result-item';
+                    resultItem.innerHTML = `
+                        <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
+                        <p>${item.snippet}</p>
+                    `;
+                    textResultsDiv.appendChild(resultItem);
+                });
+                animateTyping(summaryBox, data.summary);
+            } else {
+                textResultsDiv.innerHTML = 'No results found.';
+                logAttempt('No search results found.');
+            }
+        }
+
+        function animateTyping(element, text) {
+            let i = 0;
+            element.innerHTML = '';
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, 50);
+                }
+            }
+            type();
+        }
+
+        function logAttempt(message) {
+            document.getElementById('log').innerHTML += `<p>${message}</p>`;
+        }
+
+        function logError(error) {
+            document.getElementById('log').innerHTML += `<p style="color:red;">Error: ${error}</p>`;
+        }
+    </script>
+</body>
+</html>
